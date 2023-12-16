@@ -21,4 +21,4 @@ The French Tutor App is designed to assist learners in improving their French la
 ### Installation
 Clone the repository:
 ```bash
-git clone [[repository URL]](https://github.com/nathanvdv/Nvidia)https://github.com/nathanvdv/Nvidia
+git clone https://github.com/nathanvdv/Nvidia
