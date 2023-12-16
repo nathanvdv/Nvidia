@@ -1,5 +1,6 @@
 import pandas as pd
 import re
+from sklearn.calibration import LabelEncoder
 import spacy
 import torch
 from transformers import CamembertTokenizer, CamembertModel
@@ -88,13 +89,24 @@ class DataLoader:
         data['cleaned_sentence'] = self.clean_french_sentences(data)
         features_df = data['cleaned_sentence'].apply(self.calculate_features).tolist()
         return data.join(pd.DataFrame(features_df))
+    
+    def encode_difficulty(self, data):
+        if 'difficulty' not in data.columns:
+            print("Column 'difficulty' not found in the dataset.")
+            return data
 
+        encoder = LabelEncoder()
+        data['difficulty_encoded'] = encoder.fit_transform(data['difficulty'])
+        return data
+    
 def main():
-    # Example usage
     training_data_loader = DataLoader("french_tutor_app/backend/data/training_data.csv")
     training_data = training_data_loader.load_data()
-    enhanced_training_data = training_data_loader.enhance_dataset(training_data)
-    enhanced_training_data.to_csv('french_tutor_app/backend/data/Cleaned_Enhanced_training.csv', index=False)
+    if training_data is not None:
+        enhanced_training_data = training_data_loader.enhance_dataset(training_data)
+        encoded_training_data = training_data_loader.encode_difficulty(enhanced_training_data)
+        encoded_training_data.to_csv('french_tutor_app/backend/data/Cleaned_Enhanced_Encoded_Training.csv', index=False)
+
 
     test_data_loader = DataLoader("french_tutor_app/backend/data/unlabelled_test_data.csv")
     test_data = test_data_loader.load_data()
