@@ -215,7 +215,8 @@ def learning_tips(file_path):
 
 
 def show_learning_tips(difficulty_level):
-    st.markdown("<h2>Learning Tips :</h2>", unsafe_allow_html=True)
+    string_to_show = "Learning Tips for dificulty level: " + str(difficulty_level)
+    st.markdown(f"<h2>{string_to_show}</h2>", unsafe_allow_html=True)
     if difficulty_level == 'C1' or difficulty_level == 'C2':
         st.markdown("<h3>You are already good ! Keep going !</h3>", unsafe_allow_html=True)
         pass
