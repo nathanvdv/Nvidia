@@ -1,6 +1,7 @@
 import numpy as np
 import pyphen
 import pandas as pd
+from sklearn.discriminant_analysis import StandardScaler
 import streamlit as st
 import textstat
 import torch
@@ -12,6 +13,8 @@ from transformers import CamembertTokenizer, CamembertModel
 import spacy
 from ast import literal_eval
 import re
+from lime.lime_text import LimeTextExplainer
+import lime
 
 
 nlp = spacy.load("fr_core_news_sm")
@@ -50,15 +53,15 @@ def clean_french_sentences(data):
 
 
 def calculate_features(text):
-    if not isinstance(text, str):
+    if not text or not isinstance(text, str):
         return None
 
     # Tokenize the text into words and sentences
     words = word_tokenize(text, language='french')
     sentences = sent_tokenize(text, language='french')
 
-    # Initialize Pyphen for syllable counting
-    dic = pyphen.Pyphen(lang='fr')
+    if len(words) == 0:  # Check if there are no words
+        return None
 
     # Compute text embeddings
     inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True, max_length=512)
@@ -68,29 +71,28 @@ def calculate_features(text):
 
     # Lexical Diversity Measures
     lex = LexicalRichness(text)
-    mtld = lex.mtld(threshold=0.72)
+    mtld = lex.mtld(threshold=0.72) if len(words) > 0 else 0  # Avoid division by zero
 
     # Syntactic Complexity Measures
     doc = nlp(text)
     num_subordinate_clauses = sum(
         1 for sent in doc.sents for token in sent if token.dep_ in ['csubj', 'csubjpass', 'advcl'])
-    average_verbs_per_sentence = sum(1 for token in doc if token.pos_ == 'VERB') / len(sentences)
+    average_verbs_per_sentence = sum(1 for token in doc if token.pos_ == 'VERB') / len(sentences) if len(sentences) > 0 else 0
 
     # Readability Scores
-    dcrs = textstat.dale_chall_readability_score(text)
-    fkg = textstat.flesch_kincaid_grade(text)
-    ari = textstat.automated_readability_index(text)
-    cli = textstat.coleman_liau_index(text)
+    dcrs = textstat.dale_chall_readability_score(text) if len(words) > 0 else 0
+    fkg = textstat.flesch_kincaid_grade(text) if len(words) > 0 else 0
+    ari = textstat.automated_readability_index(text) if len(words) > 0 else 0
+    cli = textstat.coleman_liau_index(text) if len(words) > 0 else 0
 
     return {
         'LEN': len(words),
-        'AWL': np.mean([len(word) for word in words]),
-        'TTR': len(set(words)) / len(words),
-        'ASL': np.mean([len(word_tokenize(sentence, language='french')) for sentence in sentences]),
+        'AWL': np.mean([len(word) for word in words]) if len(words) > 0 else 0,
+        'TTR': len(set(words)) / len(words) if len(words) > 0 else 0,
+        'ASL': np.mean([len(word_tokenize(sentence, language='french')) for sentence in sentences]) if len(sentences) > 0 else 0,
         'AVPS': average_verbs_per_sentence,
-        'ASL.AVPS': np.mean(
-            [len(word_tokenize(sentence, language='french')) for sentence in sentences]) * average_verbs_per_sentence,
-        'embeddings': embeddings.tolist(),  # Convert to list for easier handling
+        'ASL.AVPS': np.mean([len(word_tokenize(sentence, language='french')) for sentence in sentences]) * average_verbs_per_sentence if len(sentences) > 0 else 0,
+        'embeddings': embeddings.tolist(),
         'mtld': mtld,
         'num_subordinate_clauses': num_subordinate_clauses,
         'DCRS': dcrs,
@@ -100,50 +102,98 @@ def calculate_features(text):
     }
 
 
+
 def enhance_dataset(data):
-    data['cleaned_sentence'] = clean_french_sentences(data)
-    features_df = data['cleaned_sentence'].apply(calculate_features).tolist()
-    return data.join(pd.DataFrame(features_df))
+    # Apply the calculate_features function to each sentence
+    features_list = data['sentence'].apply(calculate_features).tolist()
+    features_df = pd.DataFrame(features_list)
+
+    # Flatten the embeddings and join with the original DataFrame
+    embeddings_df = pd.DataFrame(features_df['embeddings'].tolist(), index=features_df.index)
+    embeddings_df.columns = [f'emb_{i}' for i in range(embeddings_df.shape[1])]
+
+    enhanced_data = data.join(features_df).join(embeddings_df).drop(['embeddings', 'sentence'], axis=1)
+    return enhanced_data
+
+
+
+def explain_prediction(sentence, model, scaler, enhanced_test_data):
+    feature_vector = enhanced_test_data[df['sentence'] == sentence].iloc[0]
+
+    def proba_fn(texts):
+        probabilities = []
+        for text in texts:
+            if text == sentence:
+                standardized_features = scaler.transform([feature_vector])
+                proba = model.predict_proba(standardized_features)[0]
+            else:
+                proba = np.full((model.classes_.shape[0],), 1/model.classes_.shape[0])
+            probabilities.append(proba)
+        return np.array(probabilities)
+
+    explainer = lime.lime_text.LimeTextExplainer(class_names=["A1", "A2", "B1", "B2", "C1", "C2"])
+
+    combined_html = "<div style='width:100%; overflow-x: auto;'>"
+    for class_index in range(len(explainer.class_names)):
+        exp = explainer.explain_instance(sentence, proba_fn, labels=(class_index,))
+        combined_html += exp.as_html() + "<br>"
+    combined_html += "</div>"
+
+    return combined_html
+
+
+
 
 
 def predict_text(text):
     st.write("Input:", text)
     
-    # Split the input text into sentences
+    # Split the input text into sentences and store them
     sentences = split_sentences(text)
     store_text(sentences)
     
-    st.write("Data", df)
-    
-    # Enhance each sentence in the DataFrame
+    # Process and enhance the data
     enhanced_test_data = enhance_dataset(df)
-    enhanced_test_data = enhanced_test_data.drop(['sentence', 'cleaned_sentence'], axis=1)
     
-    st.write("Featurization of the data", enhanced_test_data)
-    
-    # Creating a DataFrame from embeddings
-    embeddings_df = pd.DataFrame(enhanced_test_data['embeddings'].tolist(), index=enhanced_test_data.index)
-    embeddings_df.columns = [f'emb_{i}' for i in range(embeddings_df.shape[1])]
+    # Identify numeric columns for scaling
+    numeric_columns = enhanced_test_data.select_dtypes(include=[np.number]).columns
+    numeric_data = enhanced_test_data[numeric_columns]
 
-    # Concatenate the original data with the new embeddings DataFrame
-    enhanced_test_data = pd.concat([enhanced_test_data, embeddings_df], axis=1).drop(['embeddings'], axis=1)
+    # Load the model and scaler
     loaded_model = load("french_tutor_app/backend/models/best_svm_model.joblib")
-    predictions = loaded_model.predict(enhanced_test_data)
-    
+    scaler = StandardScaler()
+    X_test_scaled = scaler.fit_transform(numeric_data)
+
+    # Prediction and combined LIME explanation
+    predictions = []
+    for idx, row in enhanced_test_data.iterrows():
+        sentence = df.at[idx, 'sentence']
+        prediction = loaded_model.predict(X_test_scaled[idx].reshape(1, -1))[0]
+        predictions.append(prediction)
+
+        combined_explanation_html = explain_prediction(sentence, loaded_model, scaler, enhanced_test_data)
+        st.markdown(f"### LIME Explanations for Sentence: {sentence}")
+        st.components.v1.html(combined_explanation_html, height=1000, scrolling=True)
+
+
+    # Map predictions and update DataFrame
     cefr_mapping = {0: 'A1', 1: 'A2', 2: 'B1', 3: 'B2', 4: 'C1', 5: 'C2'}
-    df['predicted_difficulty'] = predictions
-    df['predicted_difficulty'] = df['predicted_difficulty'].map(cefr_mapping)
-    df.drop(['cleaned_sentence'], axis=1, inplace=True)
-    
+    df['predicted_difficulty'] = [cefr_mapping[pred] for pred in predictions]
+
     st.write("Prediction mapped", df)
+
     return predictions
+
+
+
+
 
 
 def main():
     st.title("French Tutor App")
 
     # Input text box
-    input_text = st.text_area("Enter a sentence:", "")
+    input_text = st.text_area("Enter a sentence:", "")  
 
     # Prediction button
     if st.button("Predict"):

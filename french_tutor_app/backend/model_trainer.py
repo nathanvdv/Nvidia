@@ -41,14 +41,14 @@ class ModelTrainer:
         X_train_scaled = scaler.fit_transform(X_train)
 
         # Initialize model and perform cross-validation
-        svm_model = SVC(kernel='rbf')
+        svm_model = SVC(kernel='rbf', probability=True)
         cv_scores = cross_val_score(svm_model, X_train_scaled, y_train, cv=5)
         print(f"Cross-Validation Scores: {cv_scores}")
         print(f"Mean CV Score: {cv_scores.mean()}, Standard Deviation: {cv_scores.std()}")
 
         # Hyperparameter tuning
         param_grid = {'C': [0.1, 1, 10, 100], 'gamma': ['scale', 'auto']}
-        grid_search = GridSearchCV(SVC(kernel='rbf'), param_grid, cv=5, verbose=2, n_jobs=-1)
+        grid_search = GridSearchCV(SVC(kernel='rbf', probability= True), param_grid, cv=5, verbose=2, n_jobs=-1)
         grid_search.fit(X_train_scaled, y_train)
         print("Best parameters found: ", grid_search.best_params_)
 
