@@ -1,7 +1,6 @@
 import numpy as np
 import pyphen
 import pandas as pd
-from sklearn.discriminant_analysis import StandardScaler
 import streamlit as st
 import textstat
 import torch
@@ -15,6 +14,8 @@ from ast import literal_eval
 import re
 from lime.lime_text import LimeTextExplainer
 import lime
+import requests
+
 
 
 nlp = spacy.load("fr_core_news_sm")
@@ -154,7 +155,7 @@ def predict_text(text):
     
     # Process and enhance the data
     enhanced_test_data = enhance_dataset(df)
-    
+
     # Identify numeric columns for scaling
     numeric_columns = enhanced_test_data.select_dtypes(include=[np.number]).columns
     numeric_data = enhanced_test_data[numeric_columns]
@@ -185,22 +186,54 @@ def predict_text(text):
     return predictions
 
 
+def learning_tips(file_path):
+    data = pd.read_csv(file_path, sep=";")
+    if not data['Vocabulaire'].empty:
+        st.markdown("<h1>Vocabulary Tips</h1>", unsafe_allow_html=True)
+        for tip in data['Vocabulaire']:
+            st.write(tip)
+    if not data['Orthographe'].empty:
+        st.markdown("Orthograph Tips")
+        for tip in data['Orthographe']:
+            st.write(tip)
+    if not data['Grammaire'].empty:
+        st.markdown("Grammar Tips")
+        for tip in data['Grammaire']:
+            st.write(tip)
+    if not data['Conjugaison'].empty:
+        st.markdown("Conjugason Tips")
+        for tip in data['Conjugaison']:
+            st.write(tip)
+    if not data['Oral'].empty:
+        st.markdown("Speaking Tips")
+        for tip in data['Oral']:
+            st.write(tip)
 
 
+
+
+def show_learning_tips(difficulty_level):
+    st.write(f"Learning Tips for {difficulty_level}")
+    learning_tips("data/dataB1.csv")
+    # Include your learning tips here
 
 
 def main():
     st.title("French Tutor App")
 
     # Input text box
-    input_text = st.text_area("Enter a sentence:", "")  
+    input_text = st.text_area("Enter a sentence:", "")
 
     # Prediction button
-    if st.button("Predict"):
+    if st.button("Evaluate my level") & st.checkbox("Get Learning Tips"):
         if input_text:
-            prediction = predict_text(input_text)
+            predict_text(input_text)
+            show_learning_tips("A2")
         else:
-            st.warning("Please enter some text before predicting.")
+            st.warning("Please enter some text before predicting your level.")
+    else:
+        if input_text:
+            predict_text(input_text)
 
 
 if __name__ == "__main__":
