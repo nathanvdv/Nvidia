@@ -145,8 +145,6 @@ def explain_prediction(sentence, model, scaler, enhanced_test_data):
 
 
 def predict_text(text):
-    st.write("Input:", text)
-
     # Split the input text into sentences and store them
     sentences = split_sentences(text)
     store_text(sentences)
@@ -195,30 +193,35 @@ def learning_tips(file_path):
                 if pd.notna(tip):
                     columns[i % num_columns].markdown(f"<li>{tip}</li>", unsafe_allow_html=True)
 
-    if not data['Vocabulaire'].empty:
-        st.markdown("<h2>Vocabulary Tips</h2>", unsafe_allow_html=True)
+    if not data['Vocabulaire'].dropna().empty:
+        st.markdown("<h3>Vocabulary Tips</h3>", unsafe_allow_html=True)
         display_tips(data['Vocabulaire'])
 
-    if not data['Orthographe'].empty:
-        st.markdown("<h2>Orthography Tips</h2>", unsafe_allow_html=True)
+    if not data['Orthographe'].dropna().empty:
+        st.markdown("<h3>Orthography Tips</h3>", unsafe_allow_html=True)
         display_tips(data['Orthographe'])
 
-    if not data['Grammaire'].empty:
-        st.markdown("<h2>Grammar Tips</h2>", unsafe_allow_html=True)
+    if not data['Grammaire'].dropna().empty:
+        st.markdown("<h3>Grammar Tips</h3>", unsafe_allow_html=True)
         display_tips(data['Grammaire'])
 
-    if not data['Conjugaison'].empty:
-        st.markdown("<h2>Conjugation Tips</h2>", unsafe_allow_html=True)
+    if not data['Conjugaison'].dropna().empty:
+        st.markdown("<h3>Conjugation Tips</h3>", unsafe_allow_html=True)
         display_tips(data['Conjugaison'])
 
-    if not data['Oral'].empty:
-        st.markdown("<h2>Speaking Subject/Tips</h2>", unsafe_allow_html=True)
+    if not data['Oral'].dropna().empty:
+        st.markdown("<h3>Speaking Subject/Tips</h3>", unsafe_allow_html=True)
         display_tips(data['Oral'])
 
 
 def show_learning_tips(difficulty_level):
-    file_name = f"data/data{difficulty_level}.csv"
-    learning_tips(file_name)
+    st.markdown("<h2>Learning Tips :</h2>", unsafe_allow_html=True)
+    if difficulty_level == 'C1' or difficulty_level == 'C2':
+        st.markdown("<h3>You are already good ! Keep going !</h3>", unsafe_allow_html=True)
+        pass
+    else:
+        file_name = f"data/data{difficulty_level}.csv"
+        learning_tips(file_name)
     # Include your learning tips here
 
 
@@ -239,16 +242,13 @@ def main():
     with col3:
         st.write(' ')
 
-
-
     # Input text box
     input_text = st.text_area("Enter a sentence:", "")
-
     # Prediction button
     if st.button("Evaluate my level") & st.checkbox("Get Learning Tips"):
         if input_text:
             prediction = predict_text(input_text)
-            show_learning_tips("A1")
+            show_learning_tips("B2")
         else:
             st.warning("Please enter some text before predicting your level.")
     else:
