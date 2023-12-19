@@ -179,7 +179,7 @@ def predict_text(text):
 
     st.write("Prediction mapped", df)
 
-    return predictions
+    return df['predicted_difficulty']
 
 
 def learning_tips(file_path):
@@ -217,7 +217,8 @@ def learning_tips(file_path):
 
 def show_learning_tips(difficulty_level):
     st.write(f"Learning Tips for {difficulty_level}")
-    learning_tips("data/dataB1.csv")
+    file_name = f"data/data{difficulty_level}.csv"
+    learning_tips(file_name)
     # Include your learning tips here
 
 
@@ -230,8 +231,8 @@ def main():
     # Prediction button
     if st.button("Evaluate my level") & st.checkbox("Get Learning Tips"):
         if input_text:
-            predict_text(input_text)
-            show_learning_tips("A2")
+            prediction = predict_text(input_text)
+            show_learning_tips("A1")
         else:
             st.warning("Please enter some text before predicting your level.")
     else:
