@@ -8,6 +8,9 @@ from joblib import load
 from lexicalrichness import LexicalRichness
 from nltk.tokenize import word_tokenize, sent_tokenize
 import re
+
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
 from transformers import CamembertTokenizer, CamembertModel
 import spacy
 from ast import literal_eval
@@ -15,8 +18,6 @@ import re
 from lime.lime_text import LimeTextExplainer
 import lime
 import requests
-
-
 
 nlp = spacy.load("fr_core_news_sm")
 tokenizer = CamembertTokenizer.from_pretrained('camembert/camembert-large')
@@ -31,6 +32,7 @@ def store_text(sentences):
     new_rows = pd.DataFrame({'sentence': sentences})
     df = pd.concat([df, new_rows], ignore_index=True)
 
+
 def split_sentences(text):
     """
     Split text into individual sentences using punctuation marks (., !, ?).
@@ -40,6 +42,7 @@ def split_sentences(text):
     # Removing empty strings from the list
     sentences = [sentence.strip() for sentence in sentences if sentence.strip()]
     return sentences
+
 
 def clean_french_sentences(data):
     def clean_sentence(sentence):
@@ -78,7 +81,8 @@ def calculate_features(text):
     doc = nlp(text)
     num_subordinate_clauses = sum(
         1 for sent in doc.sents for token in sent if token.dep_ in ['csubj', 'csubjpass', 'advcl'])
-    average_verbs_per_sentence = sum(1 for token in doc if token.pos_ == 'VERB') / len(sentences) if len(sentences) > 0 else 0
+    average_verbs_per_sentence = sum(1 for token in doc if token.pos_ == 'VERB') / len(sentences) if len(
+        sentences) > 0 else 0
 
     # Readability Scores
     dcrs = textstat.dale_chall_readability_score(text) if len(words) > 0 else 0
@@ -90,9 +94,11 @@ def calculate_features(text):
         'LEN': len(words),
         'AWL': np.mean([len(word) for word in words]) if len(words) > 0 else 0,
         'TTR': len(set(words)) / len(words) if len(words) > 0 else 0,
-        'ASL': np.mean([len(word_tokenize(sentence, language='french')) for sentence in sentences]) if len(sentences) > 0 else 0,
+        'ASL': np.mean([len(word_tokenize(sentence, language='french')) for sentence in sentences]) if len(
+            sentences) > 0 else 0,
         'AVPS': average_verbs_per_sentence,
-        'ASL.AVPS': np.mean([len(word_tokenize(sentence, language='french')) for sentence in sentences]) * average_verbs_per_sentence if len(sentences) > 0 else 0,
+        'ASL.AVPS': np.mean([len(word_tokenize(sentence, language='french')) for sentence in
+                             sentences]) * average_verbs_per_sentence if len(sentences) > 0 else 0,
         'embeddings': embeddings.tolist(),
         'mtld': mtld,
         'num_subordinate_clauses': num_subordinate_clauses,
@@ -101,7 +107,6 @@ def calculate_features(text):
         'ARI': ari,
         'CLI': cli
     }
-
 
 
 def enhance_dataset(data):
@@ -117,23 +122,18 @@ def enhance_dataset(data):
     return enhanced_data
 
 
-
 def explain_prediction(sentence, model, scaler, enhanced_test_data):
     feature_vector = enhanced_test_data[df['sentence'] == sentence].iloc[0]
 
     def proba_fn(texts):
         probabilities = []
         for text in texts:
-            if text == sentence:
-                standardized_features = scaler.transform([feature_vector])
-                proba = model.predict_proba(standardized_features)[0]
-            else:
-                proba = np.full((model.classes_.shape[0],), 1/model.classes_.shape[0])
+            standardized_features = scaler.transform([feature_vector])
+            proba = model.predict_proba(standardized_features)[0]
             probabilities.append(proba)
         return np.array(probabilities)
 
     explainer = lime.lime_text.LimeTextExplainer(class_names=["A1", "A2", "B1", "B2", "C1", "C2"])
-
     combined_html = "<div style='width:100%; overflow-x: auto;'>"
     for class_index in range(len(explainer.class_names)):
         exp = explainer.explain_instance(sentence, proba_fn, labels=(class_index,))
@@ -143,16 +143,13 @@ def explain_prediction(sentence, model, scaler, enhanced_test_data):
     return combined_html
 
 
-
-
-
 def predict_text(text):
     st.write("Input:", text)
-    
+
     # Split the input text into sentences and store them
     sentences = split_sentences(text)
     store_text(sentences)
-    
+
     # Process and enhance the data
     enhanced_test_data = enhance_dataset(df)
 
@@ -161,7 +158,7 @@ def predict_text(text):
     numeric_data = enhanced_test_data[numeric_columns]
 
     # Load the model and scaler
-    loaded_model = load("french_tutor_app/backend/models/best_svm_model.joblib")
+    loaded_model = load("models/best_svm_model.joblib")
     scaler = StandardScaler()
     X_test_scaled = scaler.fit_transform(numeric_data)
 
@@ -172,10 +169,9 @@ def predict_text(text):
         prediction = loaded_model.predict(X_test_scaled[idx].reshape(1, -1))[0]
         predictions.append(prediction)
 
-        combined_explanation_html = explain_prediction(sentence, loaded_model, scaler, enhanced_test_data)
-        st.markdown(f"### LIME Explanations for Sentence: {sentence}")
-        st.components.v1.html(combined_explanation_html, height=1000, scrolling=True)
-
+        # combined_explanation_html = explain_prediction(sentence, loaded_model, scaler, enhanced_test_data)
+        # st.markdown(f"### LIME Explanations for Sentence: {sentence}")
+        # st.components.v1.html(combined_explanation_html, height=1000, scrolling=True)
 
     # Map predictions and update DataFrame
     cefr_mapping = {0: 'A1', 1: 'A2', 2: 'B1', 3: 'B2', 4: 'C1', 5: 'C2'}
@@ -188,28 +184,35 @@ def predict_text(text):
 
 def learning_tips(file_path):
     data = pd.read_csv(file_path, sep=";")
+
+    def display_tips(tips):
+        num_columns = 2
+
+        if len(tips) > 0:
+            columns = st.columns(num_columns)
+            for i, tip in enumerate(tips):
+                if pd.notna(tip):
+                    columns[i % num_columns].markdown(f"<li>{tip}</li>", unsafe_allow_html=True)
+
     if not data['Vocabulaire'].empty:
-        st.markdown("<h1>Vocabulary Tips</h1>", unsafe_allow_html=True)
-        for tip in data['Vocabulaire']:
-            st.write(tip)
+        st.markdown("<h2>Vocabulary Tips</h2>", unsafe_allow_html=True)
+        display_tips(data['Vocabulaire'])
+
     if not data['Orthographe'].empty:
-        st.markdown("Orthograph Tips")
-        for tip in data['Orthographe']:
-            st.write(tip)
+        st.markdown("<h2>Orthography Tips</h2>", unsafe_allow_html=True)
+        display_tips(data['Orthographe'])
+
     if not data['Grammaire'].empty:
-        st.markdown("Grammar Tips")
-        for tip in data['Grammaire']:
-            st.write(tip)
+        st.markdown("<h2>Grammar Tips</h2>", unsafe_allow_html=True)
+        display_tips(data['Grammaire'])
+
     if not data['Conjugaison'].empty:
-        st.markdown("Conjugason Tips")
-        for tip in data['Conjugaison']:
-            st.write(tip)
+        st.markdown("<h2>Conjugation Tips</h2>", unsafe_allow_html=True)
+        display_tips(data['Conjugaison'])
+
     if not data['Oral'].empty:
-        st.markdown("Speaking Tips")
-        for tip in data['Oral']:
-            st.write(tip)
-
-
+        st.markdown("<h2>Speaking Subject/Tips</h2>", unsafe_allow_html=True)
+        display_tips(data['Oral'])
 
 
 def show_learning_tips(difficulty_level):
