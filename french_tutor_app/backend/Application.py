@@ -115,6 +115,7 @@ def enhance_dataset(data):
     features_df = pd.DataFrame(features_list)
 
     # Flatten the embeddings and join with the original DataFrame
+    
     embeddings_df = pd.DataFrame(features_df['embeddings'].tolist(), index=features_df.index)
     embeddings_df.columns = [f'emb_{i}' for i in range(embeddings_df.shape[1])]
 
@@ -216,7 +217,6 @@ def learning_tips(file_path):
 
 
 def show_learning_tips(difficulty_level):
-    st.write(f"Learning Tips for {difficulty_level}")
     file_name = f"data/data{difficulty_level}.csv"
     learning_tips(file_name)
     # Include your learning tips here
