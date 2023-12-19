@@ -223,7 +223,23 @@ def show_learning_tips(difficulty_level):
 
 
 def main():
-    st.title("French Tutor App")
+    st.markdown("<h1 style='text-align: center; color: grey;'>Group Nvidia</h1>", unsafe_allow_html=True)
+
+    st.markdown("<h2 style='text-align: center; color: black;'>French Tutor App </h2>", unsafe_allow_html=True)
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.write(' ')
+
+    with col2:
+        st.image("https://encrypted-tbn0.gstatic.com/images?q=tbn"
+                 ":ANd9GcRAaZ0IzTHlRMGqZNE3apuJ3asRId0JBKYHYI1HxO3Hm4JsERtMkW_kooIJjynqPz6Qb1c&usqp=CAU")
+
+    with col3:
+        st.write(' ')
+
+
 
     # Input text box
     input_text = st.text_area("Enter a sentence:", "")
