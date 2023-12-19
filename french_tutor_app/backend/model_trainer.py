@@ -4,6 +4,8 @@ from sklearn.model_selection import GridSearchCV, cross_val_score
 from sklearn.metrics import classification_report
 from sklearn.preprocessing import StandardScaler
 from ast import literal_eval
+import joblib
+
 
 class ModelTrainer:
     def __init__(self, training_data_path, test_data_path):
@@ -53,6 +55,8 @@ class ModelTrainer:
         # Use the best estimator for predictions on test data
         best_svm = grid_search.best_estimator_
         X_test_scaled = scaler.transform(test_data)  # Standardizing test data
+        model_filename = 'best_svm_model.joblib'
+        joblib.dump(best_svm, model_filename)
 
         test_predictions = best_svm.predict(X_test_scaled)
         for idx, prediction in enumerate(test_predictions):
@@ -68,8 +72,8 @@ class ModelTrainer:
 
 def main():
     trainer = ModelTrainer(
-        training_data_path='french_tutor_app/backend/data/Cleaned_Enhanced_Encoded_Training.csv',
-        test_data_path='french_tutor_app/backend/data/Cleaned_Enhanced_test.csv'
+        training_data_path='data/Cleaned_Enhanced_Encoded_Training.csv',
+        test_data_path='data/Cleaned_Enhanced_test.csv'
     )
     trainer.train_and_evaluate()
 

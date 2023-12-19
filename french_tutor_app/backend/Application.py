@@ -10,9 +10,8 @@ from nltk.tokenize import word_tokenize, sent_tokenize
 import re
 from transformers import CamembertTokenizer, CamembertModel
 import spacy
+from ast import literal_eval
 
-
-spacy.cli.download("fr_core_news_sm")
 nlp = spacy.load("fr_core_news_sm")
 tokenizer = CamembertTokenizer.from_pretrained('camembert/camembert-large')
 model = CamembertModel.from_pretrained('camembert/camembert-large')
@@ -25,12 +24,6 @@ def store_text(text):
     global df
     new_row = pd.DataFrame({'sentence': [text]})
     df = pd.concat([df, new_row], ignore_index=True)
-
-
-def enhance_dataset(data):
-    data['cleaned_sentence'] = clean_french_sentences(data)
-    features_df = data['cleaned_sentence'].apply(calculate_features).tolist()
-    return data.join(pd.DataFrame(features_df))
 
 
 def clean_french_sentences(data):
@@ -96,16 +89,34 @@ def calculate_features(text):
     }
 
 
+def enhance_dataset(data):
+    data['cleaned_sentence'] = clean_french_sentences(data)
+    features_df = data['cleaned_sentence'].apply(calculate_features).tolist()
+    return data.join(pd.DataFrame(features_df))
+
+
 def predict_text(text):
     st.write("Input:", text)
     store_text(text)
-    data = df
-    st.write("Data", data)
-    enhanced_test_data = enhance_dataset(data)
-    loaded_model = load("french_tutor_app/backend/models/best_svm_model.joblib")
-    prediction = loaded_model.predict(enhanced_test_data)
+    st.write("Data", df)
+    enhanced_test_data = enhance_dataset(df)
+    enhanced_test_data = enhanced_test_data.drop(['sentence', 'cleaned_sentence'], axis=1)
+    st.write("enhanced", enhanced_test_data)
+    # Creating a DataFrame from embeddings
+    embeddings_df = pd.DataFrame(enhanced_test_data['embeddings'].tolist(), index=enhanced_test_data.index)
+    embeddings_df.columns = [f'emb_{i}' for i in range(embeddings_df.shape[1])]
 
-    return prediction
+    # Concatenate the original data with the new embeddings DataFrame
+    enhanced_test_data = pd.concat([enhanced_test_data, embeddings_df], axis=1).drop(['embeddings'], axis=1)
+    loaded_model = load("/Users/romainhovius/PycharmProjects/Nvidia/french_tutor_app/backend/models/best_svm_model"
+                        ".joblib")
+    predictions = loaded_model.predict(enhanced_test_data)
+    cefr_mapping = {0: 'A1', 1: 'A2', 2: 'B1', 3: 'B2', 4: 'C1', 5: 'C2'}
+    df['predicted_difficulty'] = predictions
+    df['predicted_difficulty'] = df['predicted_difficulty'].map(cefr_mapping)
+    df.drop(['cleaned_sentence'], axis=1, inplace=True)
+    st.write("Prediction mapped", df)
+    return predictions
 
 
 def main():
@@ -117,9 +128,7 @@ def main():
     # Prediction button
     if st.button("Predict"):
         if input_text:
-            # Make prediction
             prediction = predict_text(input_text)
-            st.write("Prediction:", prediction)
         else:
             st.warning("Please enter some text before predicting.")
 
