@@ -55,7 +55,7 @@ class ModelTrainer:
         # Use the best estimator for predictions on test data
         best_svm = grid_search.best_estimator_
         X_test_scaled = scaler.transform(test_data)  # Standardizing test data
-        model_filename = 'best_svm_model.joblib'
+        model_filename = 'french_tutor_app/backend/models/best_svm_model.joblib'
         joblib.dump(best_svm, model_filename)
 
         test_predictions = best_svm.predict(X_test_scaled)
@@ -69,11 +69,12 @@ class ModelTrainer:
         test_data_with_id['predicted_difficulty'] = test_data_with_id['predicted_difficulty'].map(cefr_mapping)
         test_data_with_id[['id', 'predicted_difficulty']].to_csv('french_tutor_app/backend/data/Nvidia_submission.csv', index=False)
         print("Predictions saved to Nvidia_submission.csv")
+        
 
 def main():
     trainer = ModelTrainer(
-        training_data_path='data/Cleaned_Enhanced_Encoded_Training.csv',
-        test_data_path='data/Cleaned_Enhanced_test.csv'
+        training_data_path='french_tutor_app/backend/data/Cleaned_Enhanced_Encoded_Training.csv',
+        test_data_path='french_tutor_app/backend/data/Cleaned_Enhanced_test.csv'
     )
     trainer.train_and_evaluate()
 

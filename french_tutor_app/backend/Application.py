@@ -11,6 +11,8 @@ import re
 from transformers import CamembertTokenizer, CamembertModel
 import spacy
 from ast import literal_eval
+import re
+
 
 nlp = spacy.load("fr_core_news_sm")
 tokenizer = CamembertTokenizer.from_pretrained('camembert/camembert-large')
@@ -20,11 +22,20 @@ columns = ['sentence']
 df = pd.DataFrame(columns=columns)
 
 
-def store_text(text):
+def store_text(sentences):
     global df
-    new_row = pd.DataFrame({'sentence': [text]})
-    df = pd.concat([df, new_row], ignore_index=True)
+    new_rows = pd.DataFrame({'sentence': sentences})
+    df = pd.concat([df, new_rows], ignore_index=True)
 
+def split_sentences(text):
+    """
+    Split text into individual sentences using punctuation marks (., !, ?).
+    """
+    # Splitting the text at each punctuation mark followed by a space or the end of the string
+    sentences = re.split(r'[.!?](?:\s+|$)', text)
+    # Removing empty strings from the list
+    sentences = [sentence.strip() for sentence in sentences if sentence.strip()]
+    return sentences
 
 def clean_french_sentences(data):
     def clean_sentence(sentence):
@@ -97,24 +108,33 @@ def enhance_dataset(data):
 
 def predict_text(text):
     st.write("Input:", text)
-    store_text(text)
+    
+    # Split the input text into sentences
+    sentences = split_sentences(text)
+    store_text(sentences)
+    
     st.write("Data", df)
+    
+    # Enhance each sentence in the DataFrame
     enhanced_test_data = enhance_dataset(df)
     enhanced_test_data = enhanced_test_data.drop(['sentence', 'cleaned_sentence'], axis=1)
-    st.write("enhanced", enhanced_test_data)
+    
+    st.write("Featurization of the data", enhanced_test_data)
+    
     # Creating a DataFrame from embeddings
     embeddings_df = pd.DataFrame(enhanced_test_data['embeddings'].tolist(), index=enhanced_test_data.index)
     embeddings_df.columns = [f'emb_{i}' for i in range(embeddings_df.shape[1])]
 
     # Concatenate the original data with the new embeddings DataFrame
     enhanced_test_data = pd.concat([enhanced_test_data, embeddings_df], axis=1).drop(['embeddings'], axis=1)
-    loaded_model = load("/Users/romainhovius/PycharmProjects/Nvidia/french_tutor_app/backend/models/best_svm_model"
-                        ".joblib")
+    loaded_model = load("french_tutor_app/backend/models/best_svm_model.joblib")
     predictions = loaded_model.predict(enhanced_test_data)
+    
     cefr_mapping = {0: 'A1', 1: 'A2', 2: 'B1', 3: 'B2', 4: 'C1', 5: 'C2'}
     df['predicted_difficulty'] = predictions
     df['predicted_difficulty'] = df['predicted_difficulty'].map(cefr_mapping)
     df.drop(['cleaned_sentence'], axis=1, inplace=True)
+    
     st.write("Prediction mapped", df)
     return predictions
 
