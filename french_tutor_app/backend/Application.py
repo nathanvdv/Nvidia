@@ -21,6 +21,7 @@ nlp = spacy.load("fr_core_news_sm")
 tokenizer = CamembertTokenizer.from_pretrained('camembert/camembert-large')
 model = CamembertModel.from_pretrained('camembert/camembert-large')
 
+st.set_page_config(layout="wide") 
 columns = ['sentence']
 df = pd.DataFrame(columns=columns)
 
