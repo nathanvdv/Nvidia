@@ -275,9 +275,11 @@ def main():
         st.write(' ')
 
     with col2:
-        st.image("https://encrypted-tbn0.gstatic.com/images?q=tbn"
-                 ":ANd9GcRAaZ0IzTHlRMGqZNE3apuJ3asRId0JBKYHYI1HxO3Hm4JsERtMkW_kooIJjynqPz6Qb1c&usqp=CAU")
-
+        image_url = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRAaZ0IzTHlRMGqZNE3apuJ3asRId0JBKYHYI1HxO3Hm4JsERtMkW_kooIJjynqPz6Qb1c&usqp=CAU"
+        st.markdown(
+            f'<div style="display: flex; justify-content: center;"><img src="{image_url}" width="500px"></div>',
+            unsafe_allow_html=True
+            )
     with col3:
         st.write(' ')
 
