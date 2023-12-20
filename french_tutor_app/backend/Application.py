@@ -24,6 +24,8 @@ model = CamembertModel.from_pretrained('camembert/camembert-large')
 columns = ['sentence']
 df = pd.DataFrame(columns=columns)
 
+if 'display_learning_tips' not in st.session_state:
+    st.session_state.display_learning_tips = False
 
 def store_text(sentences):
     global df
@@ -183,18 +185,27 @@ def predict_text(text):
     scaler = StandardScaler()
     X_test_scaled = scaler.fit_transform(numeric_data)
 
+    col6, col7 = st.columns(2)
+
     predictions = []
     for idx, row in enhanced_test_data.iterrows():
         sentence = df.at[idx, 'sentence']
         prediction = loaded_model.predict(X_test_scaled[idx].reshape(1, -1))[0]
         predictions.append(prediction)
 
-        combined_explanation_html = explain_prediction(sentence, loaded_model, scaler, enhanced_test_data)
-        st.markdown(f"### LIME Explanations for Sentence: {sentence}")
-        st.components.v1.html(combined_explanation_html, height=1600, scrolling=True)
+        with col7:
+            combined_explanation_html = explain_prediction(sentence, loaded_model, scaler, enhanced_test_data)
+            st.markdown(f"### LIME Explanations for Sentence: {sentence}")
+            st.components.v1.html(combined_explanation_html, height=1600, scrolling=True)
 
-    cefr_mapping = {0: 'A1', 1: 'A2', 2: 'B1', 3: 'B2', 4: 'C1', 5: 'C2'}
-    df['predicted_difficulty'] = [cefr_mapping[pred] for pred in predictions]
+    with col6:
+        cefr_mapping = {0: 'A1', 1: 'A2', 2: 'B1', 3: 'B2', 4: 'C1', 5: 'C2'}
+        df['predicted_difficulty'] = [cefr_mapping[pred] for pred in predictions]
+        st.table(df[['sentence', 'predicted_difficulty']])
+        st.write(f"Your predicted level is (averaged and rounded downwards): {df['predicted_difficulty'].mode()[0]}")
+
+        if st.session_state.display_learning_tips:
+            show_learning_tips(df['predicted_difficulty'].mode()[0])
 
     return df[['sentence', 'predicted_difficulty']], df['predicted_difficulty'].mode()[0]
 
@@ -279,7 +290,7 @@ def main():
         else:
             st.warning("Please enter some text before translating.")
 
-    display_learning_tips = st.checkbox("Get Learning Tips")
+    st.session_state.display_learning_tips = st.checkbox("Get Learning Tips")
 
     # Evaluate my level button
     if st.button("Evaluate my level"):
@@ -287,12 +298,10 @@ def main():
             sentences_df, most_frequent_difficulty = predict_text(input_text)
 
             # Display the table with sentences and their predicted difficulty
-            st.table(sentences_df)
+            # st.table(sentences_df)
 
-            st.write(f"Your predicted level is (averaged and rounded downwards): {most_frequent_difficulty}")
-
-            if display_learning_tips:
-                show_learning_tips(most_frequent_difficulty)
+            # st.write(f"Your predicted level is (averaged and rounded downwards): {most_frequent_difficulty}")
+            # show_learning_tips(most_frequent_difficulty)
         else:
             st.warning("Please enter some text before predicting your level.")
 
