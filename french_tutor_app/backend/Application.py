@@ -115,10 +115,9 @@ def enhance_dataset(data):
     features_df = pd.DataFrame(features_list)
 
     # Flatten the embeddings and join with the original DataFrame
-    
+
     embeddings_df = pd.DataFrame(features_df['embeddings'].tolist(), index=features_df.index)
     embeddings_df.columns = [f'emb_{i}' for i in range(embeddings_df.shape[1])]
-
     enhanced_data = data.join(features_df).join(embeddings_df).drop(['embeddings', 'sentence'], axis=1)
     return enhanced_data
 

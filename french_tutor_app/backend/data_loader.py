@@ -15,6 +15,7 @@ nlp = spacy.load("fr_core_news_sm")
 tokenizer = CamembertTokenizer.from_pretrained('camembert/camembert-large')
 model = CamembertModel.from_pretrained('camembert/camembert-large')
 
+
 class DataLoader:
     def __init__(self, file_path):
         self.file_path = file_path
@@ -34,6 +35,7 @@ class DataLoader:
                 doc = nlp(sentence)
                 return ' '.join([token.lemma_ for token in doc])
             return sentence
+
         return data['sentence'].apply(clean_sentence)
 
     def calculate_features(self, text):
@@ -60,7 +62,8 @@ class DataLoader:
 
         # Syntactic Complexity Measures
         doc = nlp(text)
-        num_subordinate_clauses = sum(1 for sent in doc.sents for token in sent if token.dep_ in ['csubj', 'csubjpass', 'advcl'])
+        num_subordinate_clauses = sum(
+            1 for sent in doc.sents for token in sent if token.dep_ in ['csubj', 'csubjpass', 'advcl'])
         average_verbs_per_sentence = sum(1 for token in doc if token.pos_ == 'VERB') / len(sentences)
 
         # Readability Scores
@@ -75,7 +78,8 @@ class DataLoader:
             'TTR': len(set(words)) / len(words),
             'ASL': np.mean([len(word_tokenize(sentence, language='french')) for sentence in sentences]),
             'AVPS': average_verbs_per_sentence,
-            'ASL.AVPS': np.mean([len(word_tokenize(sentence, language='french')) for sentence in sentences]) * average_verbs_per_sentence,
+            'ASL.AVPS': np.mean([len(word_tokenize(sentence, language='french')) for sentence in
+                                 sentences]) * average_verbs_per_sentence,
             'embeddings': embeddings.tolist(),  # Convert to list for easier handling
             'mtld': mtld,
             'num_subordinate_clauses': num_subordinate_clauses,
@@ -89,7 +93,7 @@ class DataLoader:
         data['cleaned_sentence'] = self.clean_french_sentences(data)
         features_df = data['cleaned_sentence'].apply(self.calculate_features).tolist()
         return data.join(pd.DataFrame(features_df))
-    
+
     def encode_difficulty(self, data):
         if 'difficulty' not in data.columns:
             print("Column 'difficulty' not found in the dataset.")
@@ -98,7 +102,8 @@ class DataLoader:
         encoder = LabelEncoder()
         data['difficulty_encoded'] = encoder.fit_transform(data['difficulty'])
         return data
-    
+
+
 def main():
     training_data_loader = DataLoader("french_tutor_app/backend/data/training_data.csv")
     training_data = training_data_loader.load_data()
@@ -107,11 +112,11 @@ def main():
         encoded_training_data = training_data_loader.encode_difficulty(enhanced_training_data)
         encoded_training_data.to_csv('french_tutor_app/backend/data/Cleaned_Enhanced_Encoded_Training.csv', index=False)
 
-
     test_data_loader = DataLoader("french_tutor_app/backend/data/unlabelled_test_data.csv")
     test_data = test_data_loader.load_data()
     enhanced_test_data = test_data_loader.enhance_dataset(test_data)
     enhanced_test_data.to_csv('french_tutor_app/backend/data/Cleaned_Enhanced_test.csv', index=False)
+
 
 if __name__ == "__main__":
     main()
