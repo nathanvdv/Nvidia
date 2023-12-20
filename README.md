@@ -27,3 +27,16 @@ Install
 ```bash
 bash -c "$(wget -O- https://raw.githubusercontent.com/nathanvdv/Nvidia/french_tutor_app/setup.sh)"
 ```
+
+## Deliverables
+### Model scores without doing any data cleaning
+<p align="center">
+  <img src="french_tutor_app/backend/deliverables/Table.png" width="800" title="hover text">
+</p>
+
+### Our score progression over time
+
+<p align="center">
+  <img src="french_tutor_app/backend/deliverables/Score_evo.png" width="800" title="hover text">
+</p>
+
