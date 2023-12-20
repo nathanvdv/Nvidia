@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRAaZ0IzTHlRMGqZNE3apuJ3asRId0JBKYHYI1HxO3Hm4JsERtMkW_kooIJjynqPz6Qb1c&usqp=CAU" width="200"/>
+</p>
+
 # French Tutor App
 
 The French Tutor App is an interactive tool designed to assist users in improving their French language skills. It offers functionalities such as translating text from French to English, predicting the user's French proficiency level, and providing customized learning tips based on the evaluated difficulty level.
