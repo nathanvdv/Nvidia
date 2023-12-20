@@ -86,3 +86,6 @@ Project Link: https://github.com/nathanvdv/french-tutor-app
   <img src="french_tutor_app/backend/deliverables/Score_evo.png" width="800" title="hover text">
 </p>
 
+## Youtube video link
+
+https://youtu.be/TzoikN4gYwM
