@@ -145,27 +145,31 @@ def explain_prediction(sentence, model, scaler, enhanced_test_data):
 
     return combined_html
 
-def translate_text(text, target_language='en'):
-    url = "https://google-translate-api8.p.rapidapi.com/google-translate/"
+import requests
 
-    # Set the source ('fr' for French) and target ('en' for English) languages
-    querystring = {"text": text, "lang": target_language}
+def translate_text(text, source_language='fr', target_language='en'):
+    url = "https://google-translate1.p.rapidapi.com/language/translate/v2"
 
+    # The data payload includes the source text, source language, and target language
+    payload = {
+        "q": text,
+        "target": target_language,
+        "source": source_language
+    }
     headers = {
-        "content-type": "application/json",
+        "content-type": "application/x-www-form-urlencoded",
+        "Accept-Encoding": "application/gzip",
         "X-RapidAPI-Key": "b64f294ccbmsh857601b84d731bap1ee52cjsn58a7ef880106",
-        "X-RapidAPI-Host": "google-translate-api8.p.rapidapi.com"
+        "X-RapidAPI-Host": "google-translate1.p.rapidapi.com"
     }
 
-    response = requests.post(url, headers=headers, params=querystring)
+    response = requests.post(url, data=payload, headers=headers)
 
     if response.status_code == 200:
-        # Assuming the response structure contains the translated text
-        # Update the JSON path according to the actual response structure
-        translated_text = response.json().get('data', {}).get('translatedText', '')
+        translated_text = response.json().get('data', {}).get('translations', [{}])[0].get('translatedText', '')
         return translated_text
     else:
-        print("Error:", response.text)
+        print("Error:", response.text)  # Print error for debugging
         return "Translation error."
 
 
@@ -268,7 +272,7 @@ def main():
 
     if st.button("Translate to English"):
         if input_text:
-            translated_text = translate_text(input_text, target_language='en')
+            translated_text = translate_text(input_text, source_language='fr', target_language='en')
             st.write(f"Translated Text: {translated_text}")
         else:
             st.warning("Please enter some text before translating.")
