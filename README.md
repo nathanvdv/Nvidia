@@ -22,6 +22,7 @@ Make sure you have the following installed:
 
    ```bash
    git clone https://github.com/nathanvdv/Nvidia
+   cd Nvidia
    ```
 
 2. **Set up a Virtual Environment** (Optional but recommended)
