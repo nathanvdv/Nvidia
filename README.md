@@ -17,8 +17,7 @@ Make sure you have the following installed:
 1. **Clone the Repository**
 
    ```bash
-   git clone https://github.com/nathanvdv/french-tutor-app.git
-   cd french-tutor-app
+   git clone https://github.com/nathanvdv/Nvidia
    ```
 
 2. **Set up a Virtual Environment** (Optional but recommended)
@@ -31,18 +30,19 @@ Make sure you have the following installed:
 3. **Install Dependencies**
 
    ```bash
-   pip install -r requirements.txt
+   pip install -r french_tutor_app/requirements.txt
    ```
 
 4. **Run the Application**
 
    ```bash
-   streamlit run app.py
+   cd french_tutor_app/backend
+   streamlit run Application.py
    ```
 
 ## Usage
 
-1. **Start the Application**: Open your terminal, navigate to the project directory, and run `streamlit run app.py`.
+1. **Start the Application**: Open your terminal, navigate to the project directory, and run `streamlit run Application.py`.
    
 2. **Input Text**: Enter a French sentence or paragraph in the provided text area.
 
@@ -58,9 +58,8 @@ Make sure you have the following installed:
 
 Contributions to the French Tutor App are welcome! If you have suggestions or improvements, feel free to fork the repository and submit a pull request.
 
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+## API Usage Limitation
+Please note that we are currently using a free subscription for the translation API, which limits us to 500 characters per month. This constraint affects the amount of text that can be translated within this period. We recommend mindful usage to ensure continued service availability throughout the month.
 
 ## Contact
 
