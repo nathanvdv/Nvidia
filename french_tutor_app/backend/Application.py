@@ -121,19 +121,22 @@ def enhance_dataset(data):
     enhanced_data = data.join(features_df).join(embeddings_df).drop(['embeddings', 'sentence'], axis=1)
     return enhanced_data
 
-
 def explain_prediction(sentence, model, scaler, enhanced_test_data):
     feature_vector = enhanced_test_data[df['sentence'] == sentence].iloc[0]
 
     def proba_fn(texts):
         probabilities = []
         for text in texts:
-            standardized_features = scaler.transform([feature_vector])
-            proba = model.predict_proba(standardized_features)[0]
+            if text == sentence:
+                standardized_features = scaler.transform([feature_vector])
+                proba = model.predict_proba(standardized_features)[0]
+            else:
+                proba = np.full((model.classes_.shape[0],), 1/model.classes_.shape[0])
             probabilities.append(proba)
         return np.array(probabilities)
 
     explainer = lime.lime_text.LimeTextExplainer(class_names=["A1", "A2", "B1", "B2", "C1", "C2"])
+
     combined_html = "<div style='width:100%; overflow-x: auto;'>"
     for class_index in range(len(explainer.class_names)):
         exp = explainer.explain_instance(sentence, proba_fn, labels=(class_index,))
@@ -142,42 +145,60 @@ def explain_prediction(sentence, model, scaler, enhanced_test_data):
 
     return combined_html
 
+def translate_text(text, target_language='en'):
+    url = "https://google-translate-api8.p.rapidapi.com/google-translate/"
+
+    # Set the source ('fr' for French) and target ('en' for English) languages
+    querystring = {"text": text, "lang": target_language}
+
+    headers = {
+        "content-type": "application/json",
+        "X-RapidAPI-Key": "b64f294ccbmsh857601b84d731bap1ee52cjsn58a7ef880106",
+        "X-RapidAPI-Host": "google-translate-api8.p.rapidapi.com"
+    }
+
+    response = requests.post(url, headers=headers, params=querystring)
+
+    if response.status_code == 200:
+        # Assuming the response structure contains the translated text
+        # Update the JSON path according to the actual response structure
+        translated_text = response.json().get('data', {}).get('translatedText', '')
+        return translated_text
+    else:
+        print("Error:", response.text)
+        return "Translation error."
+
+
 
 def predict_text(text):
-    # Split the input text into sentences and store them
     sentences = split_sentences(text)
     store_text(sentences)
-
-    # Process and enhance the data
     enhanced_test_data = enhance_dataset(df)
 
-    # Identify numeric columns for scaling
     numeric_columns = enhanced_test_data.select_dtypes(include=[np.number]).columns
     numeric_data = enhanced_test_data[numeric_columns]
 
-    # Load the model and scaler
-    loaded_model = load("models/best_svm_model.joblib")
+    loaded_model = load("french_tutor_app/backend/models/best_svm_model.joblib")
     scaler = StandardScaler()
     X_test_scaled = scaler.fit_transform(numeric_data)
 
-    # Prediction and combined LIME explanation
     predictions = []
     for idx, row in enhanced_test_data.iterrows():
         sentence = df.at[idx, 'sentence']
         prediction = loaded_model.predict(X_test_scaled[idx].reshape(1, -1))[0]
         predictions.append(prediction)
 
-        # combined_explanation_html = explain_prediction(sentence, loaded_model, scaler, enhanced_test_data)
-        # st.markdown(f"### LIME Explanations for Sentence: {sentence}")
-        # st.components.v1.html(combined_explanation_html, height=1000, scrolling=True)
+        combined_explanation_html = explain_prediction(sentence, loaded_model, scaler, enhanced_test_data)
+        st.markdown(f"### LIME Explanations for Sentence: {sentence}")
+        st.components.v1.html(combined_explanation_html, height=1600, scrolling=True)
 
-    # Map predictions and update DataFrame
     cefr_mapping = {0: 'A1', 1: 'A2', 2: 'B1', 3: 'B2', 4: 'C1', 5: 'C2'}
     df['predicted_difficulty'] = [cefr_mapping[pred] for pred in predictions]
 
     st.write("Prediction mapped", df)
 
     return df['predicted_difficulty']
+
 
 
 def learning_tips(file_path):
@@ -220,7 +241,7 @@ def show_learning_tips(difficulty_level):
         st.markdown("<h3>You are already good ! Keep going !</h3>", unsafe_allow_html=True)
         pass
     else:
-        file_name = f"data/data{difficulty_level}.csv"
+        file_name = f"french_tutor_app/backend/data/data{difficulty_level}.csv"
         learning_tips(file_name)
     # Include your learning tips here
 
@@ -244,6 +265,14 @@ def main():
 
     # Input text box
     input_text = st.text_area("Enter a sentence:", "")
+
+    if st.button("Translate to English"):
+        if input_text:
+            translated_text = translate_text(input_text, target_language='en')
+            st.write(f"Translated Text: {translated_text}")
+        else:
+            st.warning("Please enter some text before translating.")
+            
     # Prediction button
     if st.button("Evaluate my level") & st.checkbox("Get Learning Tips"):
         if input_text:
