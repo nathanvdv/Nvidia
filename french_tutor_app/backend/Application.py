@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -182,7 +183,11 @@ def predict_text(text):
     numeric_columns = enhanced_test_data.select_dtypes(include=[np.number]).columns
     numeric_data = enhanced_test_data[numeric_columns]
 
-    loaded_model = load("french_tutor_app/backend/models/best_svm_model.joblib")
+     # Dynamically construct the path to the model file
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    model_path = os.path.join(script_dir, 'models', 'best_svm_model.joblib')
+    
+    loaded_model = load(model_path)
     scaler = StandardScaler()
     X_test_scaled = scaler.fit_transform(numeric_data)
 
@@ -211,8 +216,10 @@ def predict_text(text):
     return df[['sentence', 'predicted_difficulty']], df['predicted_difficulty'].mode()[0]
 
 
-def learning_tips(file_path):
-    data = pd.read_csv(file_path, sep=";")
+def learning_tips(difficulty_level):
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    file_name = os.path.join(script_dir, "data", f"data{difficulty_level}.csv")
+    data = pd.read_csv(file_name, sep=";")
 
     def display_tips(tips):
         num_columns = 2
@@ -261,8 +268,7 @@ def show_learning_tips(difficulty_level):
     if difficulty_level == 'C1' or difficulty_level == 'C2':
         st.markdown("<h3>You are already good! Keep going!</h3>", unsafe_allow_html=True)
     else:
-        file_name = f"french_tutor_app/backend/data/data{difficulty_level}.csv"
-        learning_tips(file_name)
+        learning_tips(difficulty_level)
 
 
 def main():
